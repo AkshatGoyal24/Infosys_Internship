@@ -1,0 +1,30 @@
+export interface PortfolioProfile {
+  source?: string;
+  clientName: string;
+  portfolioType: string;
+  dob?: string;
+  identifier: string;
+  portfolioValue?: number;
+  initialInvestment?: number;
+  equityPercent?: number;
+  fixedIncomePercent?: number;
+  cashPercent?: number;
+  alternativesPercent?: number;
+  portfolioDriftPercent: number;
+  riskProfile: string;
+  excelAlertStatus?: string;
+  financialGoal?: string;
+  equityDriftPercent?: number;
+  fixedIncomeDriftPercent?: number;
+  cashDriftPercent?: number;
+  alternativesDriftPercent?: number;
+  daysOutsideThreshold?: number;
+  previousDriftPercent?: number;
+  driftVelocityPercent?: number;
+  triggerCondition?: string;
+  watchThreshold: number;
+  criticalThreshold: number;
+  riskLevel?: string;
+  classification: string;
+  urgencyScore: number;
+}
