@@ -1,3 +1,11 @@
+export interface ComponentScores {
+  driftSeverity: number;
+  persistence: number;
+  velocity: number;
+  moneyImpact: number;
+  concentration: number;
+}
+
 export interface PortfolioProfile {
   source?: string;
   clientName: string;
@@ -12,7 +20,6 @@ export interface PortfolioProfile {
   alternativesPercent?: number;
   portfolioDriftPercent: number;
   riskProfile: string;
-  excelAlertStatus?: string;
   financialGoal?: string;
   equityDriftPercent?: number;
   fixedIncomeDriftPercent?: number;
@@ -22,9 +29,12 @@ export interface PortfolioProfile {
   previousDriftPercent?: number;
   driftVelocityPercent?: number;
   triggerCondition?: string;
+  concentrationPercent?: number;
+  dollarDriftEstimate?: number;
   watchThreshold: number;
   criticalThreshold: number;
   riskLevel?: string;
+  componentScores: ComponentScores;
   classification: string;
-  urgencyScore: number;
+  priorityScore: number;
 }
