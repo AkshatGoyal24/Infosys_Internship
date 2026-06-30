@@ -1,3 +1,18 @@
+export type UserRole = 'admin' | 'advisor';
+
+export interface AuthUser {
+  username: string;
+  role: UserRole;
+}
+
+export interface ComponentWeights {
+  driftSeverity: number;
+  persistence: number;
+  velocity: number;
+  moneyImpact: number;
+  concentration: number;
+}
+
 export interface ComponentScores {
   driftSeverity: number;
   persistence: number;
@@ -38,3 +53,27 @@ export interface PortfolioProfile {
   classification: string;
   priorityScore: number;
 }
+
+export interface WeightsUpdateResponse {
+  weights: ComponentWeights;
+  classificationCounts: Record<string, number>;
+  previousClassificationCounts: Record<string, number>;
+}
+
+export type ComponentWeightKey = keyof ComponentWeights;
+
+export const COMPONENT_LABELS: Record<ComponentWeightKey, string> = {
+  driftSeverity: 'Drift Severity',
+  persistence: 'Persistence',
+  velocity: 'Velocity',
+  moneyImpact: 'Money Impact',
+  concentration: 'Concentration',
+};
+
+export const COMPONENT_KEYS: ComponentWeightKey[] = [
+  'driftSeverity',
+  'persistence',
+  'velocity',
+  'moneyImpact',
+  'concentration',
+];

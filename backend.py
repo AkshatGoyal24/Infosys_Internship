@@ -1,19 +1,14 @@
-import math
 from pathlib import Path
 
 import pandas as pd
+
+from api.scoring import DEFAULT_WEIGHTS, classify_from_score, compute_priority_score
 
 WORKBOOK_PATH = Path("Mock-Up Data - new.xlsx")
 SHEET1_INDEX = 0
 SHEET2_NAME = "Demo Dataset v3"
 
-COMPONENT_WEIGHTS = {
-    "driftSeverity": 0.50,
-    "persistence": 0.25,
-    "velocity": 0.10,
-    "moneyImpact": 0.10,
-    "concentration": 0.05,
-}
+COMPONENT_WEIGHTS = DEFAULT_WEIGHTS
 
 VELOCITY_CRITICAL_PCT = 5.0
 PERSISTENCE_DAY_CAP = 30.0
@@ -184,24 +179,6 @@ def score_concentration(concentration_percent: float | None) -> float:
     return band_interp(concentration_percent, CONCENTRATION_BANDS)
 
 
-def compute_priority_score(component_scores: dict[str, float]) -> float:
-    total = sum(
-        component_scores[key] * weight
-        for key, weight in COMPONENT_WEIGHTS.items()
-    )
-    return round(total * 100, 1)
-
-
-def classify_from_score(priority_score: float) -> str:
-    if priority_score < 40:
-        return "Normal"
-    if priority_score < 60:
-        return "Watch"
-    if priority_score < 80:
-        return "Review Soon"
-    return "Critical"
-
-
 def compute_profile(
     scoring_row: pd.Series,
     enrichment: pd.Series | None,
@@ -314,7 +291,7 @@ def main() -> None:
     for status in ("Normal", "Watch", "Review Soon", "Critical"):
         print(f"  {status}: {counts.get(status, 0)}")
 
-    export_profiles(results, Path("src/profiles.json"))
+    export_profiles(results, Path("data/profiles.json"))
 
 
 if __name__ == "__main__":
