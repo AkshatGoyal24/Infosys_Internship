@@ -3,7 +3,10 @@
   "services": {
     "web": {
       "framework": "vite",
-      "root": "."
+      "root": ".",
+      "rewrites": [
+        { "source": "/(.*)", "destination": "/index.html" }
+      ]
     },
     "backend": {
       "framework": "fastapi",
