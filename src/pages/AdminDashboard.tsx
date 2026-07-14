@@ -10,6 +10,7 @@ import {
   updateWeights,
 } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { ThemeToggle } from '../context/ThemeContext';
 import { AnalyticsCharts } from '../AnalyticsCharts';
 import {
   COMPONENT_KEYS,
@@ -134,7 +135,7 @@ export default function AdminDashboard() {
         <div className="brand">
           <div className="brand-mark" aria-hidden="true" />
           <div>
-            <span className="brand-name">Meridian Wealth Management</span>
+            <span className="brand-name">Infosys Wealth Management</span>
             <span className="brand-sub">System Administration</span>
           </div>
         </div>
@@ -143,6 +144,7 @@ export default function AdminDashboard() {
           <Link to="/dashboard" className="btn-link">
             View Advisor Dashboard
           </Link>
+          <ThemeToggle />
           <button type="button" className="btn-secondary btn-sm" onClick={logout}>
             Logout
           </button>

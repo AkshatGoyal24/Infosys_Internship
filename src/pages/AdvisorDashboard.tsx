@@ -1,221 +1,110 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchProfiles, fetchWeights, mapProfile } from '../api/client';
-import { useAuth } from '../context/AuthContext';
-import { AnalyticsCharts } from '../AnalyticsCharts';
 import {
-  COMPONENT_KEYS,
-  COMPONENT_LABELS,
-  ComponentWeights,
-  PortfolioProfile,
-} from '../types';
+  formatCurrency,
+  formatPct,
+  StatusBadge,
+  statusClassName,
+} from '../components/ProfileDetails';
+import { useAuth } from '../context/AuthContext';
+import { ThemeToggle } from '../context/ThemeContext';
+import { AnalyticsCharts } from '../AnalyticsCharts';
+import { PortfolioProfile } from '../types';
 
-const statusClassName = (classification: string) =>
-  classification.toLowerCase().replace(/\s+/g, '-');
+type ProfileViewMode = 'card' | 'list';
 
-const formatPct = (value?: number) => (value != null ? `${value.toFixed(2)}%` : '—');
-const formatCurrency = (value?: number) =>
-  value != null ? `$${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—';
+function ProfileItem({ profile, view }: { profile: PortfolioProfile; view: ProfileViewMode }) {
+  const statusClass = statusClassName(profile.classification);
 
-function StatusBadge({ status }: { status: string }) {
-  return <span className={`status-badge ${statusClassName(status)}`}>{status}</span>;
-}
-
-function ComponentScoreBreakdown({
-  profile,
-  weights,
-}: {
-  profile: PortfolioProfile;
-  weights: ComponentWeights;
-}) {
   return (
-    <div className="score-breakdown">
-      <div className="score-breakdown-header">
-        <div>
-          <h4>Priority Score Breakdown</h4>
-          <p>Weighted component scores (0.00–1.00) that determine the client priority rating.</p>
+    <Link
+      to={`/dashboard/client/${encodeURIComponent(profile.identifier)}`}
+      className={`profile-item profile-item-${view} profile-card-link ${statusClass}`}
+    >
+      <div className="profile-card-top">
+        <div className="profile-identity">
+          <h3>{profile.clientName}</h3>
+          <span className="profile-id">{profile.identifier}</span>
         </div>
-        <div className="score-breakdown-total">
+        <StatusBadge status={profile.classification} />
+      </div>
+
+      <div className="profile-metrics">
+        <div className="metric-tile">
           <span>Priority Score</span>
-          <strong>{profile.priorityScore.toFixed(1)}</strong>
+          <strong className="metric-highlight">{profile.priorityScore.toFixed(1)}</strong>
+        </div>
+        <div className="metric-tile">
+          <span>Portfolio Drift</span>
+          <strong>{formatPct(profile.portfolioDriftPercent)}</strong>
+        </div>
+        <div className="metric-tile">
+          <span>Portfolio Value</span>
+          <strong>{formatCurrency(profile.portfolioValue)}</strong>
+        </div>
+        <div className="metric-tile">
+          <span>Risk Level</span>
+          <strong>{profile.riskLevel || 'N/A'}</strong>
         </div>
       </div>
-      <div className="score-bars">
-        {COMPONENT_KEYS.map((key) => {
-          const weight = weights[key];
-          const score = profile.componentScores[key];
-          const contribution = score * weight * 100;
-          return (
-            <div className="score-bar-row" key={key}>
-              <div className="score-bar-label">
-                <span>{COMPONENT_LABELS[key]}</span>
-                <small>{Math.round(weight * 100)}% weight</small>
-              </div>
-              <div className="score-bar-track-wrap">
-                <div className="score-bar-track" aria-hidden="true">
-                  <div
-                    className="score-bar-fill"
-                    style={{ width: `${Math.min(100, score * 100)}%` }}
-                  />
-                </div>
-                <div className="score-bar-scale">
-                  <span>0</span>
-                  <span>1</span>
-                </div>
-              </div>
-              <div className="score-bar-values">
-                <strong>{score.toFixed(2)}</strong>
-                <small>+{contribution.toFixed(1)} pts</small>
-              </div>
-            </div>
-          );
-        })}
+
+      <div className="profile-card-footer">
+        <div className="profile-meta">
+          <span>{profile.portfolioType}</span>
+          <span className="meta-dot" aria-hidden="true" />
+          <span>{profile.riskProfile} risk profile</span>
+        </div>
+        <span className="expand-hint">View report →</span>
       </div>
-    </div>
+    </Link>
   );
 }
 
-function DetailSection({
-  title,
-  description,
-  children,
+function ViewModeToggle({
+  viewMode,
+  onChange,
 }: {
-  title: string;
-  description?: string;
-  children: ReactNode;
+  viewMode: ProfileViewMode;
+  onChange: (mode: ProfileViewMode) => void;
 }) {
   return (
-    <section className="detail-section">
-      <div className="detail-section-head">
-        <h4>{title}</h4>
-        {description ? <p>{description}</p> : null}
-      </div>
-      <div className="detail-section-grid">{children}</div>
-    </section>
-  );
-}
-
-function DetailField({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="detail-field">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
-function ProfileCard({
-  profile,
-  weights,
-  isExpanded,
-  onToggle,
-}: {
-  profile: PortfolioProfile;
-  weights: ComponentWeights;
-  isExpanded: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <article className={`profile-card ${statusClassName(profile.classification)} ${isExpanded ? 'expanded' : ''}`}>
-      <button type="button" className="profile-card-summary" onClick={onToggle} aria-expanded={isExpanded}>
-        <div className="profile-card-top">
-          <div className="profile-identity">
-            <h3>{profile.clientName}</h3>
-            <span className="profile-id">{profile.identifier}</span>
-          </div>
-          <StatusBadge status={profile.classification} />
-        </div>
-
-        <div className="profile-metrics">
-          <div className="metric-tile">
-            <span>Priority Score</span>
-            <strong className="metric-highlight">{profile.priorityScore.toFixed(1)}</strong>
-          </div>
-          <div className="metric-tile">
-            <span>Portfolio Drift</span>
-            <strong>{formatPct(profile.portfolioDriftPercent)}</strong>
-          </div>
-          <div className="metric-tile">
-            <span>Portfolio Value</span>
-            <strong>{formatCurrency(profile.portfolioValue)}</strong>
-          </div>
-          <div className="metric-tile">
-            <span>Risk Level</span>
-            <strong>{profile.riskLevel || 'N/A'}</strong>
-          </div>
-        </div>
-
-        <div className="profile-card-footer">
-          <div className="profile-meta">
-            <span>{profile.portfolioType}</span>
-            <span className="meta-dot" aria-hidden="true" />
-            <span>{profile.riskProfile} risk profile</span>
-          </div>
-          <span className="expand-hint">{isExpanded ? 'Hide details' : 'View details'}</span>
-        </div>
+    <div className="view-toggle" role="group" aria-label="Profile view mode">
+      <button
+        type="button"
+        className={viewMode === 'card' ? 'active' : ''}
+        onClick={() => onChange('card')}
+        aria-pressed={viewMode === 'card'}
+      >
+        Cards
       </button>
-
-      {isExpanded ? (
-        <div className="profile-card-detail">
-          <ComponentScoreBreakdown profile={profile} weights={weights} />
-
-          <DetailSection title="Client Overview" description="Relationship and portfolio summary">
-            <DetailField label="Financial Goal" value={profile.financialGoal || 'Not available'} />
-            <DetailField label="Alert Status" value={<StatusBadge status={profile.classification} />} />
-            <DetailField label="Portfolio Type" value={profile.portfolioType} />
-            <DetailField label="Risk Profile" value={profile.riskProfile} />
-            <DetailField label="Portfolio Value" value={formatCurrency(profile.portfolioValue)} />
-            <DetailField label="Initial Investment" value={formatCurrency(profile.initialInvestment)} />
-          </DetailSection>
-
-          <DetailSection title="Drift & Thresholds" description="Portfolio-level drift monitoring">
-            <DetailField label="Portfolio Drift" value={formatPct(profile.portfolioDriftPercent)} />
-            <DetailField label="Previous Drift" value={formatPct(profile.previousDriftPercent)} />
-            <DetailField label="Drift Velocity (30D)" value={formatPct(profile.driftVelocityPercent)} />
-            <DetailField label="Days Outside Threshold" value={profile.daysOutsideThreshold ?? '—'} />
-            <DetailField label="Watch Threshold" value={formatPct(profile.watchThreshold)} />
-            <DetailField label="Critical Threshold" value={formatPct(profile.criticalThreshold)} />
-            <DetailField label="Dollar Drift Estimate" value={formatCurrency(profile.dollarDriftEstimate)} />
-            <DetailField label="Concentration" value={formatPct(profile.concentrationPercent)} />
-            <DetailField label="Trigger Condition" value={profile.triggerCondition || 'None'} />
-          </DetailSection>
-
-          <DetailSection title="Asset Allocation" description="Current holdings by asset class">
-            <DetailField label="Equity" value={formatPct(profile.equityPercent)} />
-            <DetailField label="Fixed Income" value={formatPct(profile.fixedIncomePercent)} />
-            <DetailField label="Cash" value={formatPct(profile.cashPercent)} />
-            <DetailField label="Alternatives" value={formatPct(profile.alternativesPercent)} />
-          </DetailSection>
-
-          <DetailSection title="Asset-Class Drift" description="Signed drift from target allocation">
-            <DetailField label="Equity Drift" value={formatPct(profile.equityDriftPercent)} />
-            <DetailField label="Fixed Income Drift" value={formatPct(profile.fixedIncomeDriftPercent)} />
-            <DetailField label="Cash Drift" value={formatPct(profile.cashDriftPercent)} />
-            <DetailField label="Alternatives Drift" value={formatPct(profile.alternativesDriftPercent)} />
-          </DetailSection>
-        </div>
-      ) : null}
-    </article>
+      <button
+        type="button"
+        className={viewMode === 'list' ? 'active' : ''}
+        onClick={() => onChange('list')}
+        aria-pressed={viewMode === 'list'}
+      >
+        List
+      </button>
+    </div>
   );
 }
 
 export default function AdvisorDashboard() {
   const { user, logout } = useAuth();
   const [profiles, setProfiles] = useState<PortfolioProfile[]>([]);
-  const [weights, setWeights] = useState<ComponentWeights | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('All');
   const [sortKey, setSortKey] = useState<'priority' | 'drift' | 'name'>('priority');
-  const [selectedProfile, setSelectedProfile] = useState<PortfolioProfile | null>(null);
+  const [viewMode, setViewMode] = useState<ProfileViewMode>('card');
 
   const loadData = async () => {
     setLoading(true);
     setError('');
     try {
-      const [profileData, weightData] = await Promise.all([fetchProfiles(), fetchWeights()]);
+      const [profileData] = await Promise.all([fetchProfiles(), fetchWeights()]);
       setProfiles(profileData.map(mapProfile));
-      setWeights(weightData);
     } catch {
       setError('Failed to load portfolio data. Is the API server running?');
     } finally {
@@ -250,11 +139,6 @@ export default function AdvisorDashboard() {
     [profiles],
   );
 
-  const handleSelect = (profile: PortfolioProfile) => () =>
-    setSelectedProfile((current) =>
-      current?.identifier === profile.identifier ? null : profile,
-    );
-
   if (loading) {
     return (
       <div className="app-shell">
@@ -263,10 +147,10 @@ export default function AdvisorDashboard() {
     );
   }
 
-  if (error || !weights) {
+  if (error) {
     return (
       <div className="app-shell">
-        <p className="login-error">{error || 'Unable to load data.'}</p>
+        <p className="login-error">{error}</p>
         <button type="button" className="btn-secondary" onClick={loadData}>
           Retry
         </button>
@@ -280,7 +164,7 @@ export default function AdvisorDashboard() {
         <div className="brand">
           <div className="brand-mark" aria-hidden="true" />
           <div>
-            <span className="brand-name">Meridian Wealth Management</span>
+            <span className="brand-name">Infosys Wealth Management</span>
             <span className="brand-sub">Portfolio Oversight Console</span>
           </div>
         </div>
@@ -292,6 +176,7 @@ export default function AdvisorDashboard() {
               Admin Console
             </Link>
           ) : null}
+          <ThemeToggle />
           <button type="button" className="btn-secondary btn-sm" onClick={logout}>
             Logout
           </button>
@@ -364,13 +249,17 @@ export default function AdvisorDashboard() {
               <option value="name">Client name (A–Z)</option>
             </select>
           </div>
+          <div className="control-group">
+            <label>View</label>
+            <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
+          </div>
           <button type="button" className="btn-secondary btn-sm" onClick={loadData}>
             Refresh
           </button>
         </div>
       </section>
 
-      <section className="profile-grid">
+      <section className={viewMode === 'card' ? 'profile-grid' : 'profile-list'}>
         {filteredProfiles.length === 0 ? (
           <div className="empty-state">
             <h3>No clients match this filter</h3>
@@ -378,13 +267,7 @@ export default function AdvisorDashboard() {
           </div>
         ) : (
           filteredProfiles.map((profile) => (
-            <ProfileCard
-              key={profile.identifier}
-              profile={profile}
-              weights={weights}
-              isExpanded={selectedProfile?.identifier === profile.identifier}
-              onToggle={handleSelect(profile)}
-            />
+            <ProfileItem key={profile.identifier} profile={profile} view={viewMode} />
           ))
         )}
       </section>

@@ -21,6 +21,23 @@ export interface ComponentScores {
   concentration: number;
 }
 
+export interface ClientAIReport {
+  executiveSummary: string;
+  situationAssessment?: string;
+  keyConcerns: string[];
+  riskDrivers?: string[];
+  recommendedActions: string[];
+  outlook?: string;
+  urgencyLevel: 'low' | 'medium' | 'high';
+}
+
+export interface ClientReportResponse {
+  profile: PortfolioProfile;
+  weights: ComponentWeights;
+  report: ClientAIReport;
+  cached: boolean;
+}
+
 export interface PortfolioProfile {
   source?: string;
   clientName: string;

@@ -46,7 +46,7 @@ export default function Login() {
         <div className="login-brand">
           <div className="brand-mark" aria-hidden="true" />
           <div>
-            <span className="brand-name">Meridian Wealth Management</span>
+            <span className="brand-name">Infosys Wealth Management</span>
             <span className="brand-sub">Portfolio Oversight Console</span>
           </div>
         </div>

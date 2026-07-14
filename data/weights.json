@@ -1,7 +1,7 @@
 {
-  "driftSeverity": 0.5,
+  "driftSeverity": 0.4,
   "persistence": 0.25,
   "velocity": 0.1,
-  "moneyImpact": 0.1,
+  "moneyImpact": 0.2,
   "concentration": 0.05
 }

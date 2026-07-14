@@ -1,5 +1,6 @@
 import {
   AuthUser,
+  ClientReportResponse,
   ComponentWeights,
   PortfolioProfile,
   WeightsUpdateResponse,
@@ -73,6 +74,23 @@ export async function fetchMe(): Promise<AuthUser> {
 
 export async function fetchProfiles(): Promise<PortfolioProfile[]> {
   return apiFetch<PortfolioProfile[]>('/api/profiles');
+}
+
+export async function fetchProfile(identifier: string): Promise<PortfolioProfile> {
+  return apiFetch<PortfolioProfile>(`/api/profiles/${encodeURIComponent(identifier)}`);
+}
+
+export async function fetchClientReport(identifier: string): Promise<ClientReportResponse> {
+  return apiFetch<ClientReportResponse>(
+    `/api/profiles/${encodeURIComponent(identifier)}/report`,
+  );
+}
+
+export async function regenerateClientReport(identifier: string): Promise<ClientReportResponse> {
+  return apiFetch<ClientReportResponse>(
+    `/api/profiles/${encodeURIComponent(identifier)}/report`,
+    { method: 'POST' },
+  );
 }
 
 export async function fetchWeights(): Promise<ComponentWeights> {

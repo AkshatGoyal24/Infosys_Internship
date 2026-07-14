@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import AdminDashboard from './pages/AdminDashboard';
 import AdvisorDashboard from './pages/AdvisorDashboard';
+import ClientReportPage from './pages/ClientReportPage';
 import Login from './pages/Login';
 
 function ProtectedRoute({
@@ -43,6 +44,14 @@ function App() {
         element={
           <ProtectedRoute>
             <AdvisorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/client/:identifier"
+        element={
+          <ProtectedRoute>
+            <ClientReportPage />
           </ProtectedRoute>
         }
       />

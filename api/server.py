@@ -16,6 +16,7 @@ from api.auth import (
     require_admin,
 )
 from api.scoring import (
+    apply_weights_to_profile,
     apply_weights_to_profiles,
     classification_counts,
     load_profiles,
@@ -23,6 +24,7 @@ from api.scoring import (
     save_weights,
     validate_weights,
 )
+from api.llm import ClientAIReport, generate_client_report
 
 app = FastAPI(title="Portfolio Drift API")
 
@@ -51,6 +53,69 @@ class WeightsUpdateResponse(BaseModel):
 
 def weights_to_dict(weights: ComponentWeights) -> dict[str, float]:
     return weights.model_dump()
+
+
+def find_profile_by_identifier(identifier: str) -> dict:
+    weights = load_weights()
+    profiles = load_profiles()
+    for raw in profiles:
+        if raw.get("identifier") == identifier:
+            return apply_weights_to_profile(raw, weights)
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Client '{identifier}' not found",
+    )
+
+
+class ClientReportResponse(BaseModel):
+    profile: dict
+    weights: ComponentWeights
+    report: ClientAIReport
+    cached: bool
+
+
+@app.get("/api/profiles/{identifier}")
+def get_profile(
+    identifier: str,
+    _user: AuthUser = Depends(get_current_user),
+) -> dict:
+    return find_profile_by_identifier(identifier)
+
+
+@app.get("/api/profiles/{identifier}/report", response_model=ClientReportResponse)
+def get_client_report(
+    identifier: str,
+    force: bool = False,
+    _user: AuthUser = Depends(get_current_user),
+) -> ClientReportResponse:
+    profile = find_profile_by_identifier(identifier)
+    weights = load_weights()
+    try:
+        report, from_cache = generate_client_report(profile, weights, force=force)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to generate report: {exc}",
+        ) from exc
+    return ClientReportResponse(
+        profile=profile,
+        weights=ComponentWeights(**weights),
+        report=report,
+        cached=from_cache,
+    )
+
+
+@app.post("/api/profiles/{identifier}/report", response_model=ClientReportResponse)
+def regenerate_client_report(
+    identifier: str,
+    _user: AuthUser = Depends(get_current_user),
+) -> ClientReportResponse:
+    return get_client_report(identifier, force=True, _user=_user)
 
 
 @app.post("/api/auth/login", response_model=TokenResponse)
