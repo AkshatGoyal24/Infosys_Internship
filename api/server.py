@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -28,9 +30,20 @@ from api.llm import ClientAIReport, generate_client_report
 
 app = FastAPI(title="Portfolio Drift API")
 
+_cors_origins = [
+    "http://localhost:4173",
+    "http://127.0.0.1:4173",
+]
+_extra_origins = os.getenv("CORS_ORIGINS", "")
+if _extra_origins.strip():
+    _cors_origins.extend(
+        origin.strip() for origin in _extra_origins.split(",") if origin.strip()
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4173", "http://127.0.0.1:4173"],
+    allow_origins=_cors_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any, Literal
 
@@ -14,8 +15,19 @@ from pydantic import BaseModel, Field, ValidationError
 
 load_dotenv()
 
-REPORTS_DIR = Path(__file__).resolve().parent.parent / "data" / "reports"
+_BUNDLED_REPORTS_DIR = Path(__file__).resolve().parent.parent / "data" / "reports"
 DEFAULT_MODEL = "gemini-3.1-flash-lite"
+
+
+def _reports_dir() -> Path:
+    """Cache directory — /tmp on Vercel (read-only deploy FS)."""
+    if os.getenv("VERCEL"):
+        path = Path(tempfile.gettempdir()) / "portfolio-drift" / "reports"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    return _BUNDLED_REPORTS_DIR
+
+
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
 MODEL_FALLBACKS = [
     m for m in dict.fromkeys([
@@ -126,7 +138,7 @@ def compute_data_hash(profile: dict, weights: dict[str, float]) -> str:
 
 
 def _cache_path(identifier: str) -> Path:
-    return REPORTS_DIR / f"{_safe_filename(identifier)}.json"
+    return _reports_dir() / f"{_safe_filename(identifier)}.json"
 
 
 def load_cached_report(identifier: str, data_hash: str) -> ClientAIReport | None:
@@ -150,7 +162,7 @@ def save_cached_report(
 ) -> None:
     from datetime import datetime, timezone
 
-    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    _reports_dir().mkdir(parents=True, exist_ok=True)
     cached = CachedReport(
         dataHash=data_hash,
         report=report,

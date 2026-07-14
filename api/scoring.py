@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from copy import deepcopy
 from pathlib import Path
 
@@ -20,6 +22,26 @@ CLASSIFICATION_ORDER = ("Normal", "Watch", "Review Soon", "Critical")
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 WEIGHTS_PATH = DATA_DIR / "weights.json"
 PROFILES_PATH = DATA_DIR / "profiles.json"
+
+
+def _writable_data_dir() -> Path:
+    """Vercel functions can only write under /tmp; use that when deployed."""
+    if os.getenv("VERCEL"):
+        path = Path(tempfile.gettempdir()) / "portfolio-drift"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+    return DATA_DIR
+
+
+def _weights_path_for_read() -> Path:
+    writable = _writable_data_dir() / "weights.json"
+    if writable.exists():
+        return writable
+    return WEIGHTS_PATH
+
+
+def _weights_path_for_write() -> Path:
+    return _writable_data_dir() / "weights.json"
 
 
 def compute_priority_score(
@@ -72,17 +94,19 @@ def classification_counts(profiles: list[dict]) -> dict[str, int]:
 
 
 def load_weights() -> dict[str, float]:
-    if not WEIGHTS_PATH.exists():
+    path = _weights_path_for_read()
+    if not path.exists():
         save_weights(DEFAULT_WEIGHTS)
         return dict(DEFAULT_WEIGHTS)
-    with WEIGHTS_PATH.open(encoding="utf-8") as handle:
+    with path.open(encoding="utf-8") as handle:
         data = json.load(handle)
     return {key: float(data[key]) for key in WEIGHT_KEYS}
 
 
 def save_weights(weights: dict[str, float]) -> None:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    with WEIGHTS_PATH.open("w", encoding="utf-8") as handle:
+    path = _weights_path_for_write()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
         json.dump(weights, handle, indent=2)
         handle.write("\n")
 

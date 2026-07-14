@@ -1,0 +1,4 @@
+# Used only for local Excel → profiles.json ETL (backend.py), not for Vercel runtime.
+pandas>=2.0.0
+openpyxl>=3.1.0
+-r requirements.txt

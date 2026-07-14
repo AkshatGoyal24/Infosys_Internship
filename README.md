@@ -120,6 +120,12 @@ python -m venv .venv
 # macOS / Linux
 source .venv/bin/activate
 
+pip install -r requirements-etl.txt
+```
+
+For API-only (no Excel ETL):
+
+```bash
 pip install -r requirements.txt
 ```
 
@@ -134,6 +140,7 @@ Edit `.env`:
 ```env
 GEMINI_API_KEY=your_key_here
 GEMINI_MODEL=gemini-3.1-flash-lite
+JWT_SECRET=change-me-in-production
 ```
 
 ### 4. Frontend packages
@@ -173,6 +180,32 @@ npm run dev
 Open **http://localhost:4173/**
 
 Vite proxies `/api/*` to `http://localhost:8000`.
+
+---
+
+## Deploying on Vercel
+
+This repo deploys as one Vercel project with **two services** (see `vercel.json`):
+
+- **web** — Vite/React SPA
+- **backend** — FastAPI (`api.server:app`), served under `/api/*`
+
+### Steps
+
+1. Push to `main` (already connected to your Vercel project).
+2. In Vercel → Project → **Settings → Environment Variables**, add:
+   - `GEMINI_API_KEY` (required for AI reports)
+   - `GEMINI_MODEL` (optional)
+   - `JWT_SECRET` (recommended for a public demo)
+3. Redeploy (Deployments → Redeploy, or push another commit).
+4. Open the `*.vercel.app` URL and log in with a demo account.
+
+### Vercel notes
+
+- `node_modules` must **not** be in git (causes `tsc: Permission denied` on Linux builders).
+- Python is pinned to **3.12** via `.python-version`.
+- On Vercel, weight saves and AI report caches write to `/tmp` and may reset between cold starts (fine for demos).
+- Same-origin `/api` calls — no separate API URL needed.
 
 ---
 
