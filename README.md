@@ -123,7 +123,13 @@ source .venv/bin/activate
 pip install -r requirements-etl.txt
 ```
 
-For API-only (no Excel ETL):
+For local API server only (no Excel):
+
+```bash
+pip install -r requirements-local.txt
+```
+
+For API-only runtime deps (matches Vercel):
 
 ```bash
 pip install -r requirements.txt
@@ -204,6 +210,7 @@ This repo deploys as one Vercel project with **two services** (see `vercel.json`
 
 - `node_modules` must **not** be in git (causes `tsc: Permission denied` on Linux builders).
 - Python is pinned to **3.12** via `.python-version`.
+- Runtime deps are slim (`httpx` + `PyJWT`) so the FastAPI function stays under Vercel’s size limit; install `requirements-local.txt` for uvicorn locally.
 - On Vercel, weight saves and AI report caches write to `/tmp` and may reset between cold starts (fine for demos).
 - Same-origin `/api` calls — no separate API URL needed.
 

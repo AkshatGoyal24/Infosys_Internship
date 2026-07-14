@@ -6,9 +6,10 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel
 
 UserRole = Literal["admin", "advisor"]
@@ -70,7 +71,7 @@ def decode_token(token: str) -> AuthUser:
                 detail="Invalid authentication credentials",
             )
         return AuthUser(username=username, role=role)
-    except JWTError as exc:
+    except InvalidTokenError as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials",

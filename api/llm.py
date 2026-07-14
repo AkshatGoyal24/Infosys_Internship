@@ -186,20 +186,54 @@ def _is_quota_error(exc: Exception) -> bool:
     return "429" in message or "quota" in message or "resource exhausted" in message
 
 
-def _call_gemini_with_model(snapshot: dict, model_name: str) -> ClientAIReport:
-    import google.generativeai as genai
+def _call_gemini_with_model(snapshot: dict, model_name: str, api_key: str) -> ClientAIReport:
+    """Call Gemini via the lightweight REST API (avoids the heavy google-generativeai SDK)."""
+    import httpx
 
-    model = genai.GenerativeModel(
-        model_name,
-        generation_config={
-            "temperature": 0.3,
-            "max_output_tokens": MAX_OUTPUT_TOKENS,
-            "response_mime_type": "application/json",
-        },
+    url = (
+        f"https://generativelanguage.googleapis.com/v1beta/models/"
+        f"{model_name}:generateContent"
     )
-    user_message = f"Client portfolio data:\n{json.dumps(snapshot, separators=(',', ':'))}"
-    response = model.generate_content([SYSTEM_PROMPT, user_message])
-    raw_text = response.text or ""
+    payload = {
+        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+        "contents": [
+            {
+                "role": "user",
+                "parts": [
+                    {
+                        "text": (
+                            "Client portfolio data:\n"
+                            f"{json.dumps(snapshot, separators=(',', ':'))}"
+                        )
+                    }
+                ],
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": MAX_OUTPUT_TOKENS,
+            "responseMimeType": "application/json",
+        },
+    }
+
+    with httpx.Client(timeout=55.0) as client:
+        response = client.post(url, params={"key": api_key}, json=payload)
+
+    if response.status_code == 429:
+        raise RuntimeError(f"429 quota exhausted for model {model_name}: {response.text}")
+    if response.status_code >= 400:
+        raise RuntimeError(f"Gemini HTTP {response.status_code}: {response.text[:500]}")
+
+    body = response.json()
+    candidates = body.get("candidates") or []
+    if not candidates:
+        raise RuntimeError(f"Empty Gemini response: {body}")
+
+    parts = (((candidates[0] or {}).get("content") or {}).get("parts")) or []
+    raw_text = "".join(part.get("text") or "" for part in parts)
+    if not raw_text:
+        raise RuntimeError("Gemini returned no text content")
+
     parsed = _parse_json_response(raw_text)
     return ClientAIReport.model_validate(parsed)
 
@@ -328,14 +362,10 @@ def _call_gemini(snapshot: dict) -> ClientAIReport:
     if not api_key:
         raise ValueError("GEMINI_API_KEY is not set. Add it to your .env file.")
 
-    import google.generativeai as genai
-
-    genai.configure(api_key=api_key)
-
     errors: list[str] = []
     for model_name in MODEL_FALLBACKS:
         try:
-            return _call_gemini_with_model(snapshot, model_name)
+            return _call_gemini_with_model(snapshot, model_name, api_key)
         except Exception as exc:
             errors.append(f"{model_name}: {exc}")
             if not _is_quota_error(exc):

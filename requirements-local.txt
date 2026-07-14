@@ -1,0 +1,3 @@
+# Local API server (not needed on Vercel)
+-r requirements.txt
+uvicorn[standard]>=0.32.0

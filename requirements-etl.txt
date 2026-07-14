@@ -1,4 +1,4 @@
-# Used only for local Excel → profiles.json ETL (backend.py), not for Vercel runtime.
+# Local Excel → profiles.json ETL (backend.py) — not used on Vercel
+-r requirements-local.txt
 pandas>=2.0.0
 openpyxl>=3.1.0
--r requirements.txt
